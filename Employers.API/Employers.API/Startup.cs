@@ -11,6 +11,10 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using Employers.API.Models;
+using Employers.API.Data;
+using Newtonsoft.Json;
 
 namespace Employers.API
 {
@@ -26,8 +30,24 @@ namespace Employers.API
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            services.AddCors((options) =>
+                {
+                    options.AddPolicy("angularApplication", (builder) =>
+                     {
 
-            services.AddControllers();
+                         builder.WithOrigins("http://localhost:4200")
+                         .AllowAnyHeader()
+                         .WithMethods("GET", "POST", "PUT", "DELETE")
+                         .WithExposedHeaders("*");
+                     });
+                
+                
+                });
+            services.AddControllers().AddNewtonsoftJson(options =>
+            options.SerializerSettings.ReferenceLoopHandling = Newtonsoft.Json.ReferenceLoopHandling.Ignore);
+            
+            services.AddDbContext<CompanyDBContext>(options => options.UseSqlServer(Configuration.GetConnectionString("CompanyDatabase")));
+            services.AddScoped<ICompany, CompanySql>();
             services.AddSwaggerGen(c =>
             {
                 c.SwaggerDoc("v1", new OpenApiInfo { Title = "Employers.API", Version = "v1" });
@@ -48,6 +68,7 @@ namespace Employers.API
 
             app.UseRouting();
 
+            app.UseCors("angularApplication");
             app.UseAuthorization();
 
             app.UseEndpoints(endpoints =>
